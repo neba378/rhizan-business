@@ -35,7 +35,11 @@ export function SettingsPage() {
 
   const userName = useAuthStore((s) => s.userName) || 'RHIZAN Founder';
   const userEmail = useAuthStore((s) => s.userEmail) || 'founder@rhizan.com';
+  const pin = useAuthStore((s) => s.pin);
+  const setPin = useAuthStore((s) => s.setPin);
+  const lock = useAuthStore((s) => s.lock);
 
+  const [currentPin, setCurrentPin] = useState(pin);
   const [notifInvoices, setNotifInvoices] = useState(true);
   const [notifFollowups, setNotifFollowups] = useState(true);
   const [notifBudgets, setNotifBudgets] = useState(true);
@@ -171,6 +175,44 @@ export function SettingsPage() {
             <div className="space-y-1.5">
               <Label>Authentication Email</Label>
               <Input value={userEmail} disabled />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label>Quick Security PIN</Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  type="text"
+                  maxLength={4}
+                  value={currentPin}
+                  onChange={(e) => setCurrentPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                  className="font-mono text-center tracking-widest text-base w-28"
+                />
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    if (currentPin.length === 4) {
+                      setPin(currentPin);
+                      toast.success(`PIN updated to ${currentPin}`);
+                    } else {
+                      toast.error('PIN must be exactly 4 digits');
+                    }
+                  }}
+                >
+                  Save PIN
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => {
+                    lock();
+                    toast.info('Workspace Locked');
+                  }}
+                  className="text-xs text-state-danger hover:bg-state-danger-bg ml-auto"
+                >
+                  Lock Now
+                </Button>
+              </div>
             </div>
 
             <div className="rounded-lg bg-surface-bg p-3 border border-border flex items-center gap-2 text-xs text-content-secondary">

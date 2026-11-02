@@ -1,4 +1,4 @@
-import { Menu, Bell, Wifi, WifiOff, Plus } from 'lucide-react';
+import { Menu, Bell, Wifi, WifiOff, Plus, Lock } from 'lucide-react';
 import { useAppStore } from '@/stores/app-store';
 import { useAuthStore } from '@/stores/auth-store';
 import { Badge } from '@/components/ui/badge';
@@ -13,6 +13,7 @@ export function TopBar() {
   const companyName = useAppStore((s) => s.companyName);
   const defaultCurrency = useAppStore((s) => s.defaultCurrency);
   const userName = useAuthStore((s) => s.userName) || 'Founder';
+  const lock = useAuthStore((s) => s.lock);
 
   const [isOnline, setIsOnline] = useState(navigator.onLine);
 
@@ -84,6 +85,18 @@ export function TopBar() {
             <span className="absolute top-1.5 right-1.5 flex h-2 w-2 rounded-full bg-state-danger" />
           </Button>
         </Link>
+
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          onClick={() => {
+            lock();
+          }}
+          title="Lock Workspace"
+          className="text-content-secondary hover:text-content-primary"
+        >
+          <Lock className="h-4 w-4" />
+        </Button>
 
         <Link to="/settings" className="flex items-center gap-2 pl-1">
           <Avatar className="h-8 w-8 border border-border">

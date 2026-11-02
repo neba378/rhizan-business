@@ -3,21 +3,38 @@ import { persist } from 'zustand/middleware';
 
 interface AuthState {
   isAuthenticated: boolean;
-  userId: string | null;
-  userName: string | null;
-  userEmail: string | null;
+  pin: string;
+  userName: string;
+  userId: string;
+  userEmail: string;
 
+  unlockWithPin: (enteredPin: string) => boolean;
+  lock: () => void;
+  setPin: (newPin: string) => void;
   login: (userId: string, name: string, email: string) => void;
   logout: () => void;
 }
 
 export const useAuthStore = create<AuthState>()(
   persist(
-    (set) => ({
-      isAuthenticated: true, // Default to true so founder lands immediately on workspace
-      userId: 'founder-1',
+    (set, get) => ({
+      isAuthenticated: false, // Requires PIN to unlock
+      pin: '1223',
       userName: 'RHIZAN Founder',
+      userId: 'founder-1',
       userEmail: 'founder@rhizan.com',
+
+      unlockWithPin: (enteredPin: string) => {
+        if (enteredPin === get().pin) {
+          set({ isAuthenticated: true });
+          return true;
+        }
+        return false;
+      },
+
+      lock: () => set({ isAuthenticated: false }),
+
+      setPin: (newPin: string) => set({ pin: newPin }),
 
       login: (userId, name, email) =>
         set({
@@ -27,16 +44,10 @@ export const useAuthStore = create<AuthState>()(
           userEmail: email,
         }),
 
-      logout: () =>
-        set({
-          isAuthenticated: false,
-          userId: null,
-          userName: null,
-          userEmail: null,
-        }),
+      logout: () => set({ isAuthenticated: false }),
     }),
     {
-      name: 'rhizan-auth',
+      name: 'rhizan-auth-v2',
     }
   )
 );
