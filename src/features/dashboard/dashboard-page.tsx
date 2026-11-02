@@ -42,6 +42,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { generateId } from '@/lib/utils';
+import { normalizePipelineStage } from '@/features/clients/pipeline-page';
 import type { TransactionType, IncomeCategory, ExpenseCategory, Priority, PipelineStage, ContentPillar, Platform } from '@/lib/types';
 
 export function DashboardPage() {
@@ -95,10 +96,13 @@ export function DashboardPage() {
   // Client Pipeline Metrics
   const totalProspectsCount = prospects.length;
   const activePipelineValue = prospects
-    .filter((p) => p.stage !== 'lost' && p.stage !== 'won')
+    .filter((p) => {
+      const s = normalizePipelineStage(p.stage);
+      return s !== 'rejected' && s !== 'deal';
+    })
     .reduce((sum, p) => sum + (p.estimatedValue || 0), 0);
-  const wonDealsCount = prospects.filter((p) => p.stage === 'won').length;
-  const proposalsSentCount = prospects.filter((p) => p.stage === 'proposal_sent').length;
+  const wonDealsCount = prospects.filter((p) => normalizePipelineStage(p.stage) === 'deal').length;
+  const proposalsSentCount = prospects.filter((p) => normalizePipelineStage(p.stage) === 'proposal').length;
 
   // Task Priorities
   const pendingTasks = tasks.filter((t) => t.status !== 'completed');
@@ -177,7 +181,8 @@ export function DashboardPage() {
       estimatedValue: estVal,
       leadSource: 'cold_outreach',
       priority: 'high',
-      stage: 'identified',
+      stage: 'new_lead',
+      assignedTo: 'Neba',
       currency: defaultCurrency,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -234,6 +239,9 @@ export function DashboardPage() {
             <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-content-primary">
               {getGreeting()}, {userName}
             </h1>
+            <Badge variant="outline" className="hidden sm:inline-flex text-[11px] text-brand-primary border-brand-primary/30">
+              Business Growth & Marketing
+            </Badge>
           </div>
           <p className="text-xs sm:text-sm text-content-secondary mt-0.5">
             {formatDate(new Date(), 'long')} · Weekly Execution & Accountability
@@ -391,29 +399,43 @@ export function DashboardPage() {
                   No prospects added yet. Click "+ Prospect" to record your first client.
                 </div>
               ) : (
-                prospects.slice(0, 3).map((p) => (
-                  <div
-                    key={p.id}
-                    className="flex items-center justify-between rounded-lg border border-border p-2.5 hover:bg-surface-hover transition-colors"
-                  >
-                    <div className="flex flex-col min-w-0 pr-2">
-                      <span className="text-xs font-semibold text-content-primary truncate">
-                        {p.businessName}
-                      </span>
-                      <span className="text-[11px] text-content-secondary">
-                        {p.contactName} · {p.industry}
-                      </span>
+                prospects.slice(0, 3).map((p) => {
+                  const normStage = normalizePipelineStage(p.stage);
+                  const stageLabels: Record<string, string> = {
+                    new_lead: 'New Lead',
+                    followup: p.followUpType === 'visit' ? 'To Go' : 'To Call',
+                    requirement: 'Requirement',
+                    proposal: 'Proposal',
+                    deal: 'Deal Handed Over',
+                    rejected: 'Rejected',
+                  };
+                  return (
+                    <div
+                      key={p.id}
+                      className="flex items-center justify-between rounded-lg border border-border p-2.5 hover:bg-surface-hover transition-colors"
+                    >
+                      <div className="flex flex-col min-w-0 pr-2">
+                        <span className="text-xs font-semibold text-content-primary truncate">
+                          {p.businessName}
+                        </span>
+                        <span className="text-[11px] text-content-secondary">
+                          {p.contactName} · {p.industry}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <Badge
+                          variant={normStage === 'deal' ? 'success' : normStage === 'followup' ? 'warning' : 'outline'}
+                          className="text-[10px] capitalize"
+                        >
+                          {stageLabels[normStage] || normStage}
+                        </Badge>
+                        <span className="text-xs font-bold text-content-primary">
+                          {formatCurrency(p.estimatedValue, defaultCurrency)}
+                        </span>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <Badge variant="outline" className="text-[10px] capitalize">
-                        {p.stage.replace('_', ' ')}
-                      </Badge>
-                      <span className="text-xs font-bold text-content-primary">
-                        {formatCurrency(p.estimatedValue, defaultCurrency)}
-                      </span>
-                    </div>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
           </CardContent>

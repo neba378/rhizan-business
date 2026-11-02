@@ -20,6 +20,7 @@ import {
 import { toast } from 'sonner';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { normalizePipelineStage } from '@/features/clients/pipeline-page';
 
 export function ReportsPage() {
   const defaultCurrency = useAppStore((s) => s.defaultCurrency);
@@ -55,11 +56,17 @@ export function ReportsPage() {
 
   // 2. Client Outreach metrics
   const newProspectsCount = prospects.length;
-  const contactedCount = prospects.filter((p) => p.stage !== 'identified').length;
+  const contactedCount = prospects.filter((p) => normalizePipelineStage(p.stage) !== 'new_lead').length;
   const meetingsCount = meetings.length;
-  const proposalsCount = prospects.filter((p) => p.stage === 'proposal_sent' || p.stage === 'negotiation' || p.stage === 'won').length;
-  const wonClientsCount = prospects.filter((p) => p.stage === 'won').length;
-  const topProspect = prospects.find((p) => p.stage === 'proposal_sent' || p.stage === 'negotiation') || prospects[0];
+  const proposalsCount = prospects.filter((p) => {
+    const s = normalizePipelineStage(p.stage);
+    return s === 'proposal' || s === 'deal';
+  }).length;
+  const wonClientsCount = prospects.filter((p) => normalizePipelineStage(p.stage) === 'deal').length;
+  const topProspect = prospects.find((p) => {
+    const s = normalizePipelineStage(p.stage);
+    return s === 'proposal' || s === 'requirement' || s === 'followup';
+  }) || prospects[0];
 
   // 3. Marketing metrics
   const videosPublished = content.filter((c) => c.status === 'published').length;

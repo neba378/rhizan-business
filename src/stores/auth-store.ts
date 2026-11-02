@@ -20,9 +20,9 @@ export const useAuthStore = create<AuthState>()(
     (set, get) => ({
       isAuthenticated: false, // Requires PIN to unlock
       pin: '1223',
-      userName: 'RHIZAN Founder',
-      userId: 'founder-1',
-      userEmail: 'founder@rhizan.com',
+      userName: 'Neba',
+      userId: 'neba',
+      userEmail: 'neba@rhizan.com',
 
       unlockWithPin: (enteredPin: string) => {
         if (enteredPin === get().pin) {

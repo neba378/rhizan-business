@@ -139,7 +139,16 @@ export interface Budget extends SyncMeta {
 // CRM / Client Outreach
 // ============================================================
 
+export type FollowUpType = 'call' | 'visit' | 'messaging' | 'other';
+
 export type PipelineStage =
+  | 'new_lead'
+  | 'followup'
+  | 'requirement'
+  | 'proposal'
+  | 'deal'
+  | 'rejected'
+  // Legacy compatibility
   | 'identified'
   | 'researched'
   | 'contacted'
@@ -182,14 +191,69 @@ export interface Prospect extends SyncMeta {
   proposedSolution?: string;
   estimatedValue: number;
   leadSource: LeadSource;
-  assignedTo?: string;
+  assignedTo?: string; // 'Neba' | 'Zizu' | 'Sade'
   priority: Priority;
   stage: PipelineStage;
   notes?: string;
+  followUpType?: FollowUpType; // 'call' (To Call) | 'visit' (To Go) | 'messaging'
   nextFollowUpDate?: string;
   lostReason?: string;
   currency: Currency;
+  // Delivery & Project Lead Handover (Zizu - Operations & Delivery Management)
+  projectLead?: string; // e.g. 'Zizu'
+  deliveryScheduleDate?: string;
+  deliveryNotes?: string;
+  deliveryStatus?: 'pending_kickoff' | 'scheduled' | 'in_development' | 'delivered';
 }
+
+export interface TeamMember {
+  id: string;
+  name: string;
+  division: string;
+  role: string;
+  avatarText: string;
+  responsibilities: string[];
+}
+
+export const RHIZAN_TEAM: TeamMember[] = [
+  {
+    id: 'neba',
+    name: 'Neba',
+    division: 'Business Growth & Marketing',
+    role: 'Growth, Finance & Marketing Lead',
+    avatarText: 'NB',
+    responsibilities: [
+      'Finance Management — Track revenue, expenses, invoices, budgets, and financial records',
+      'Client Outreach & Research — Research potential clients, identify business opportunities, and coordinate outreach',
+      'TikTok & Social Media Marketing — Plan content, coordinate publishing, and grow online presence',
+    ],
+  },
+  {
+    id: 'zizu',
+    name: 'Zizu',
+    division: 'Operations & Delivery Management',
+    role: 'Operations & Project Delivery Lead',
+    avatarText: 'ZZ',
+    responsibilities: [
+      'Time Tracking & Meeting Management — Monitor work hours, organize meetings, and document decisions',
+      'Client Project Management — Coordinate client project requirements, timelines, deliverables, and progress',
+      'Internal Project Development — Plan and manage internal tools and systems (RHIZAN Hub & testing)',
+      'Quality Assurance & Delivery Management — Coordinate testing, deployment readiness, and client handover',
+    ],
+  },
+  {
+    id: 'sade',
+    name: 'Sade',
+    division: 'Strategic Development & Administration',
+    role: 'Strategic Development & Admin Lead',
+    avatarText: 'SD',
+    responsibilities: [
+      'VC Opportunities & Remote Jobs — Funding, venture capital, remote contracts, applications and tracking',
+      'Startup Certification & Administration — Startup certification, registration documents, and compliance',
+      'Product Development — Plan, develop, and improve RHIZAN products based on market needs',
+    ],
+  },
+];
 
 export type CommunicationChannel = 'email' | 'phone' | 'whatsapp' | 'linkedin' | 'in_person' | 'other';
 

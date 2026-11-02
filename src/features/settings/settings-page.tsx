@@ -21,9 +21,10 @@ import {
   Globe,
   Building,
   User,
+  Users,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import type { Currency } from '@/lib/types';
+import { RHIZAN_TEAM, type Currency } from '@/lib/types';
 
 export function SettingsPage() {
   const companyName = useAppStore((s) => s.companyName);
@@ -322,6 +323,66 @@ export function SettingsPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* RHIZAN Team Roles & Division Matrix */}
+      <Card className="border-border shadow-card">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Users className="h-4 w-4 text-brand-primary" />
+              <span>RHIZAN Team & Leadership Roles</span>
+            </CardTitle>
+            <span className="text-xs text-content-secondary">3 Core Founders · 10 Responsibilities</span>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {RHIZAN_TEAM.map((member) => (
+              <div
+                key={member.id}
+                className="rounded-lg border border-border bg-surface-bg p-4 flex flex-col justify-between space-y-3"
+              >
+                <div>
+                  <div className="flex items-center gap-2.5">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-primary text-white font-bold text-xs">
+                      {member.avatarText}
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-bold text-content-primary flex items-center gap-1.5">
+                        {member.name}
+                        {member.name === 'Neba' && (
+                          <span className="text-[10px] bg-brand-primary/10 text-brand-primary px-1.5 py-0.5 rounded font-semibold">
+                            You
+                          </span>
+                        )}
+                      </h4>
+                      <p className="text-[11px] text-content-secondary font-medium">{member.division}</p>
+                    </div>
+                  </div>
+
+                  <div className="mt-3.5 space-y-2">
+                    <p className="text-[10px] font-semibold text-content-tertiary uppercase tracking-wider">
+                      Assigned Responsibilities
+                    </p>
+                    <ul className="space-y-1.5 text-xs text-content-secondary">
+                      {member.responsibilities.map((r, i) => (
+                        <li key={i} className="flex items-start gap-1.5">
+                          <CheckCircle className="h-3.5 w-3.5 text-state-success shrink-0 mt-0.5" />
+                          <span className="text-[11px] leading-tight text-content-primary">{r}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+
+                <div className="pt-2 border-t border-border/60 text-[10px] text-content-tertiary">
+                  Role: <span className="text-content-secondary font-medium">{member.role}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
