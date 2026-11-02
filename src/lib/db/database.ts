@@ -16,6 +16,7 @@ import type {
   User,
   UserProfile,
   ExpensePreset,
+  CustomCategory,
 } from '../types';
 
 class RhizanDatabase extends Dexie {
@@ -35,6 +36,7 @@ class RhizanDatabase extends Dexie {
   users!: EntityTable<User, 'id'>;
   userProfiles!: EntityTable<UserProfile, 'id'>;
   expensePresets!: EntityTable<ExpensePreset, 'id'>;
+  customCategories!: EntityTable<CustomCategory, 'id'>;
 
   constructor() {
     super('RhizanBusinessDB');
@@ -60,10 +62,30 @@ class RhizanDatabase extends Dexie {
     this.version(2).stores({
       expensePresets: 'id, name, category, defaultAmount, syncStatus',
     });
+
+    this.version(3).stores({
+      customCategories: 'id, name, syncStatus',
+    });
   }
 }
 
 export const db = new RhizanDatabase();
+
+export async function ensureDefaultCategories() {
+  const count = await db.customCategories.count();
+  if (count === 0) {
+    await db.customCategories.bulkAdd([
+      { id: 'cat-office', name: 'Office & Meals (Injera, Buna)', color: '#16A34A', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), syncStatus: 'synced' },
+      { id: 'cat-transport', name: 'Transportation & Taxi', color: '#315C91', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), syncStatus: 'synced' },
+      { id: 'cat-internet', name: 'Internet & Telecom', color: '#173F75', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), syncStatus: 'synced' },
+      { id: 'cat-software', name: 'Software & Subscriptions', color: '#8B5CF6', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), syncStatus: 'synced' },
+      { id: 'cat-marketing', name: 'Marketing & Production', color: '#D97706', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), syncStatus: 'synced' },
+      { id: 'cat-payroll', name: 'Payroll & Team Payments', color: '#EC4899', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), syncStatus: 'synced' },
+      { id: 'cat-infra', name: 'Hosting & Infrastructure', color: '#06B6D4', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), syncStatus: 'synced' },
+      { id: 'cat-other', name: 'Other Operating Expenses', color: '#64748B', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), syncStatus: 'synced' },
+    ]);
+  }
+}
 
 export async function ensureDefaultExpensePresets() {
   const count = await db.expensePresets.count();
@@ -149,8 +171,9 @@ export async function clearDatabase() {
     db.auditLogs.clear(),
     db.notifications.clear(),
     db.expensePresets.clear(),
+    db.customCategories.clear(),
   ]);
-  await ensureDefaultExpensePresets();
+  await Promise.all([ensureDefaultExpensePresets(), ensureDefaultCategories()]);
 }
 
 export async function createAuditLog(

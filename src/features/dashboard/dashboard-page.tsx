@@ -78,6 +78,7 @@ export function DashboardPage() {
   const invoices = useLiveQuery(() => db.invoices.toArray()) || [];
   const meetings = useLiveQuery(() => db.meetings.toArray()) || [];
   const performance = useLiveQuery(() => db.contentPerformance.toArray()) || [];
+  const customCategories = useLiveQuery(() => db.customCategories.toArray()) || [];
 
   const totalInquiries = performance.reduce((sum, p) => sum + (p.businessInquiries || 0), 0);
 
@@ -739,17 +740,21 @@ export function DashboardPage() {
               <Label>Category</Label>
               <Select value={txCategory} onValueChange={setTxCategory}>
                 <SelectTrigger>
-                  <SelectValue />
+                  <SelectValue placeholder="Select category..." />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="internet">Internet & Connectivity</SelectItem>
-                  <SelectItem value="software_subscriptions">Software & Subscriptions</SelectItem>
-                  <SelectItem value="marketing">Marketing & Production</SelectItem>
-                  <SelectItem value="transportation">Transportation & Commute</SelectItem>
-                  <SelectItem value="office_expenses">Office Expenses</SelectItem>
-                  <SelectItem value="employee_payments">Payroll & Contractor Fees</SelectItem>
-                  <SelectItem value="infrastructure">Hosting & Infrastructure</SelectItem>
-                  <SelectItem value="other_expenses">Other Expenses</SelectItem>
+                  {customCategories.length === 0 ? (
+                    <SelectItem value="office_expenses">Office & Meals</SelectItem>
+                  ) : (
+                    customCategories.map((c) => (
+                      <SelectItem key={c.id} value={c.name}>
+                        <div className="flex items-center gap-2">
+                          <span className="h-2 w-2 rounded-full" style={{ backgroundColor: c.color || '#16A34A' }} />
+                          <span>{c.name}</span>
+                        </div>
+                      </SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
             </div>

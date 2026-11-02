@@ -15,6 +15,16 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   Plus,
@@ -34,6 +44,7 @@ import {
   Clock,
   Sparkles,
   UserCheck,
+  Trash2,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -47,6 +58,17 @@ export function ProspectsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedProspect, setSelectedProspect] = useState<Prospect | null>(null);
+  const [deleteProspectId, setDeleteProspectId] = useState<string | null>(null);
+
+  const confirmDeleteProspect = async () => {
+    if (!deleteProspectId) return;
+    await db.prospects.delete(deleteProspectId);
+    toast.success('Prospect deleted from CRM');
+    if (selectedProspect?.id === deleteProspectId) {
+      setSelectedProspect(null);
+    }
+    setDeleteProspectId(null);
+  };
 
   // Form state
   const [businessName, setBusinessName] = useState('');
@@ -275,9 +297,23 @@ export function ProspectsPage() {
                   <Badge variant="outline" className={`capitalize text-[10px] ${stageConfig?.color || ''}`}>
                     {stageConfig?.label || normStage}
                   </Badge>
-                  <span className="font-bold text-sm text-brand-primary">
-                    {formatCurrency(p.estimatedValue, defaultCurrency)}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-sm text-brand-primary">
+                      {formatCurrency(p.estimatedValue, defaultCurrency)}
+                    </span>
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setDeleteProspectId(p.id!);
+                      }}
+                      className="h-6 w-6 text-content-tertiary hover:text-state-danger hover:bg-state-danger-bg"
+                      title="Delete Prospect"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -376,15 +412,25 @@ export function ProspectsPage() {
                 </div>
               )}
 
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setSelectedProspect(null)}>
-                  Close
+              <DialogFooter className="flex items-center justify-between gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setDeleteProspectId(selectedProspect.id!)}
+                  className="text-state-danger border-state-danger/30 hover:bg-state-danger-bg"
+                >
+                  <Trash2 className="h-3.5 w-3.5 mr-1" />
+                  Delete Prospect
                 </Button>
-                <Link to="/clients/pipeline">
-                  <Button onClick={() => setSelectedProspect(null)}>
-                    Open in Kanban Pipeline
+                <div className="flex items-center gap-2">
+                  <Button variant="outline" onClick={() => setSelectedProspect(null)}>
+                    Close
                   </Button>
-                </Link>
+                  <Link to="/clients/pipeline">
+                    <Button onClick={() => setSelectedProspect(null)}>
+                      Open in Kanban Pipeline
+                    </Button>
+                  </Link>
+                </div>
               </DialogFooter>
             </div>
           )}
@@ -600,6 +646,23 @@ export function ProspectsPage() {
           </form>
         </DialogContent>
       </Dialog>
+      {/* DELETE CONFIRMATION ALERT DIALOG */}
+      <AlertDialog open={!!deleteProspectId} onOpenChange={() => setDeleteProspectId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Client Prospect?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to remove this prospect from the CRM pipeline? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDeleteProspect} className="bg-state-danger text-white">
+              Delete Prospect
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

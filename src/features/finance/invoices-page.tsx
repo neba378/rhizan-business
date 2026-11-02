@@ -15,6 +15,16 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   Plus,
@@ -41,6 +51,14 @@ export function InvoicesPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
+  const [deleteInvoiceId, setDeleteInvoiceId] = useState<string | null>(null);
+
+  const confirmDeleteInvoice = async () => {
+    if (!deleteInvoiceId) return;
+    await db.invoices.delete(deleteInvoiceId);
+    toast.success('Invoice deleted');
+    setDeleteInvoiceId(null);
+  };
 
   // New Invoice Form
   const [invoiceNumber, setInvoiceNumber] = useState(`RHZ-${new Date().getFullYear()}-${Math.floor(100 + Math.random() * 900)}`);
@@ -354,6 +372,16 @@ export function InvoicesPage() {
                         <FileDown className="h-3.5 w-3.5 mr-1" />
                         PDF
                       </Button>
+
+                      <Button
+                        size="icon-sm"
+                        variant="ghost"
+                        onClick={() => setDeleteInvoiceId(inv.id!)}
+                        className="text-content-tertiary hover:text-state-danger hover:bg-state-danger-bg h-8 w-8"
+                        title="Delete Invoice"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </div>
                   </div>
                 </div>
@@ -507,6 +535,24 @@ export function InvoicesPage() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* DELETE INVOICE ALERT DIALOG */}
+      <AlertDialog open={!!deleteInvoiceId} onOpenChange={() => setDeleteInvoiceId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Invoice Record?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this invoice? The outstanding receivables calculation will update automatically.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDeleteInvoice} className="bg-state-danger text-white">
+              Delete Invoice
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

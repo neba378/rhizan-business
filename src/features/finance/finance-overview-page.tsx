@@ -55,6 +55,7 @@ export function FinanceOverviewPage() {
   const transactions = useLiveQuery(() => db.transactions.toArray()) || [];
   const invoices = useLiveQuery(() => db.invoices.toArray()) || [];
   const budgets = useLiveQuery(() => db.budgets.toArray()) || [];
+  const customCategories = useLiveQuery(() => db.customCategories.toArray()) || [];
 
   // Filtered by selected period (Daily / Weekly / Monthly / All)
   const filteredTransactions = transactions.filter((t) =>
@@ -90,18 +91,25 @@ export function FinanceOverviewPage() {
   const outstandingInvoices = invoices.reduce((sum, inv) => sum + (inv.outstandingAmount || 0), 0);
 
   // Category breakdown for expense pie chart based on filtered period
-  const expenseByCategory: Record<string, number> = {};
+  const expenseByCategory: Record<string, { total: number; color?: string }> = {};
   filteredTransactions
     .filter((t) => t.type === 'expense')
     .forEach((t) => {
-      const cat = t.category.replace(/_/g, ' ');
-      expenseByCategory[cat] = (expenseByCategory[cat] || 0) + t.amount;
+      const match = customCategories.find((c) => c.name === t.category || c.id === t.category);
+      const catLabel = match ? match.name : t.category.replace(/_/g, ' ');
+      if (!expenseByCategory[catLabel]) {
+        expenseByCategory[catLabel] = { total: 0, color: match?.color };
+      }
+      expenseByCategory[catLabel].total += t.amount;
     });
 
-  const pieData = Object.entries(expenseByCategory).map(([name, value]) => ({
-    name,
-    value,
-  }));
+  const pieData = Object.entries(expenseByCategory)
+    .map(([name, data], idx) => ({
+      name,
+      value: data.total,
+      color: data.color || COLORS[idx % COLORS.length],
+    }))
+    .sort((a, b) => b.value - a.value);
 
   // Bar chart data for active period
   const barData = [
@@ -380,36 +388,63 @@ export function FinanceOverviewPage() {
               Expense Categories ({periodLabels[selectedPeriod]})
             </CardTitle>
           </CardHeader>
-          <CardContent className="h-64 flex items-center justify-center">
+          <CardContent className="space-y-4">
             {pieData.length === 0 ? (
-              <p className="text-xs text-content-tertiary">
+              <div className="h-64 flex items-center justify-center text-xs text-content-tertiary">
                 No expense records recorded in {periodLabels[selectedPeriod].toLowerCase()}
-              </p>
+              </div>
             ) : (
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={pieData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={50}
-                    outerRadius={80}
-                    paddingAngle={4}
-                    dataKey="value"
-                  >
-                    {pieData.map((_, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip
-                    formatter={(val: any) => [
-                      formatCurrency(Number(val) || 0, defaultCurrency),
-                      'Spent',
-                    ]}
-                  />
-                  <Legend wrapperStyle={{ fontSize: '11px' }} />
-                </PieChart>
-              </ResponsiveContainer>
+              <>
+                <div className="h-64">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={pieData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={50}
+                        outerRadius={80}
+                        paddingAngle={4}
+                        dataKey="value"
+                      >
+                        {pieData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        formatter={(val: any) => [
+                          formatCurrency(Number(val) || 0, defaultCurrency),
+                          'Spent',
+                        ]}
+                      />
+                      <Legend wrapperStyle={{ fontSize: '11px' }} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+
+                <div className="pt-2 border-t border-border space-y-2">
+                  <p className="text-[11px] font-semibold text-content-tertiary uppercase tracking-wider">
+                    Where Your Money Is Going ({periodLabels[selectedPeriod]})
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                    {pieData.map((item) => {
+                      const pct = periodExpenses > 0 ? Math.round((item.value / periodExpenses) * 100) : 0;
+                      return (
+                        <div key={item.name} className="flex items-center justify-between p-2 rounded-lg bg-surface-bg border border-border/70">
+                          <div className="flex items-center gap-2 truncate pr-2">
+                            <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: item.color }} />
+                            <span className="truncate font-medium text-content-primary">{item.name}</span>
+                          </div>
+                          <div className="text-right shrink-0">
+                            <span className="font-bold text-content-primary block">{formatCurrency(item.value, defaultCurrency)}</span>
+                            <span className="text-[10px] text-content-tertiary font-semibold">{pct}% of total</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </>
             )}
           </CardContent>
         </Card>

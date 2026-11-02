@@ -14,6 +14,16 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   Plus,
@@ -28,6 +38,7 @@ import {
   AlertCircle,
   Pencil,
   Trash2,
+  Tag,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import type { ExpensePreset, ExpenseCategory, PaymentMethod, Transaction } from '@/lib/types';
@@ -40,6 +51,7 @@ interface QuickExpenseWidgetProps {
 export function QuickExpenseWidget({ onExpenseAdded, className = '' }: QuickExpenseWidgetProps) {
   const defaultCurrency = useAppStore((s) => s.defaultCurrency);
   const presets = useLiveQuery(() => db.expensePresets.toArray()) || [];
+  const customCategories = useLiveQuery(() => db.customCategories.toArray()) || [];
   const todayTransactions = useLiveQuery(() =>
     db.transactions.filter((t) => t.type === 'expense' && isToday(t.date)).toArray()
   ) || [];
@@ -49,14 +61,20 @@ export function QuickExpenseWidget({ onExpenseAdded, className = '' }: QuickExpe
   const [additionalAmount, setAdditionalAmount] = useState<string>('');
   const [activeExistingTx, setActiveExistingTx] = useState<Transaction | null>(null);
   const [customPresetAmount, setCustomPresetAmount] = useState<string>('');
+  const [deletePresetId, setDeletePresetId] = useState<string | null>(null);
 
   // New Preset Modal state
   const [createPresetOpen, setCreatePresetOpen] = useState(false);
   const [newPresetName, setNewPresetName] = useState('');
-  const [newPresetCategory, setNewPresetCategory] = useState<ExpenseCategory>('office_expenses');
+  const [newPresetCategory, setNewPresetCategory] = useState<string>('Office & Meals (Injera, Buna)');
   const [newPresetAmount, setNewPresetAmount] = useState('150');
   const [newPresetMethod, setNewPresetMethod] = useState<PaymentMethod>('mobile_money');
   const [newPresetDesc, setNewPresetDesc] = useState('');
+
+  // Inline Category Creator
+  const [createCatOpen, setCreateCatOpen] = useState(false);
+  const [newCatName, setNewCatName] = useState('');
+  const [newCatColor, setNewCatColor] = useState('#16A34A');
 
   // Handle clicking a preset pill
   const handleOpenPreset = (preset: ExpensePreset) => {
@@ -163,6 +181,41 @@ export function QuickExpenseWidget({ onExpenseAdded, className = '' }: QuickExpe
     setNewPresetDesc('');
   };
 
+  // Save new category
+  const handleSaveCategory = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newCatName.trim()) {
+      toast.error('Please enter category name');
+      return;
+    }
+
+    const catName = newCatName.trim();
+    await db.customCategories.add({
+      id: `cat-${Date.now()}`,
+      name: catName,
+      color: newCatColor,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      syncStatus: 'synced',
+    });
+
+    toast.success(`Category "${catName}" created!`);
+    setNewPresetCategory(catName);
+    setCreateCatOpen(false);
+    setNewCatName('');
+  };
+
+  // Delete preset
+  const confirmDeletePreset = async () => {
+    if (!deletePresetId) return;
+    await db.expensePresets.delete(deletePresetId);
+    toast.success('Expense preset removed');
+    if (selectedPreset?.id === deletePresetId) {
+      setSelectedPreset(null);
+    }
+    setDeletePresetId(null);
+  };
+
   const getPresetIcon = (name: string) => {
     const n = name.toLowerCase();
     if (n.includes('injera') || n.includes('lunch') || n.includes('food')) {
@@ -192,15 +245,17 @@ export function QuickExpenseWidget({ onExpenseAdded, className = '' }: QuickExpe
             (Once set, tap to log or add onto today's total)
           </span>
         </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setCreatePresetOpen(true)}
-          className="text-xs text-brand-primary h-7 px-2 hover:bg-brand-primary/10"
-        >
-          <Plus className="h-3 w-3 mr-1" />
-          New Preset
-        </Button>
+        <div className="flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setCreatePresetOpen(true)}
+            className="text-xs text-brand-primary h-7 px-2 hover:bg-brand-primary/10"
+          >
+            <Plus className="h-3 w-3 mr-1" />
+            New Preset
+          </Button>
+        </div>
       </div>
 
       {/* Preset Pills Carousel */}
@@ -252,14 +307,34 @@ export function QuickExpenseWidget({ onExpenseAdded, className = '' }: QuickExpe
       <Dialog open={!!selectedPreset} onOpenChange={() => setSelectedPreset(null)}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              {selectedPreset && getPresetIcon(selectedPreset.name)}
-              <span>{selectedPreset?.name}</span>
-            </DialogTitle>
+            <div className="flex items-center justify-between pr-4">
+              <DialogTitle className="flex items-center gap-2">
+                {selectedPreset && getPresetIcon(selectedPreset.name)}
+                <span>{selectedPreset?.name}</span>
+              </DialogTitle>
+              {selectedPreset && (
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  onClick={() => setDeletePresetId(selectedPreset.id!)}
+                  className="h-7 w-7 text-content-tertiary hover:text-state-danger hover:bg-state-danger-bg"
+                  title="Delete this preset"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
+              )}
+            </div>
           </DialogHeader>
 
           {selectedPreset && (
             <div className="space-y-4 pt-2">
+              {/* Category indicator badge */}
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="text-[11px] capitalize text-content-secondary">
+                  Category: {selectedPreset.category.replace(/_/g, ' ')}
+                </Badge>
+              </div>
+
               {/* If already recorded today: Offer to ADD ONTO IT */}
               {activeExistingTx ? (
                 <div className="space-y-3">
@@ -475,18 +550,29 @@ export function QuickExpenseWidget({ onExpenseAdded, className = '' }: QuickExpe
             </div>
 
             <div className="space-y-1">
-              <Label>Expense Category</Label>
-              <Select value={newPresetCategory} onValueChange={(v) => setNewPresetCategory(v as ExpenseCategory)}>
+              <div className="flex items-center justify-between">
+                <Label>Expense Category</Label>
+                <button
+                  type="button"
+                  onClick={() => setCreateCatOpen(true)}
+                  className="text-xs font-semibold text-brand-primary hover:underline flex items-center gap-1"
+                >
+                  <Plus className="h-3 w-3" /> New Category
+                </button>
+              </div>
+              <Select value={newPresetCategory} onValueChange={setNewPresetCategory}>
                 <SelectTrigger>
-                  <SelectValue />
+                  <SelectValue placeholder="Select category..." />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="office_expenses">Office & Meals (Injera/Coffee)</SelectItem>
-                  <SelectItem value="transportation">Transportation & Taxi</SelectItem>
-                  <SelectItem value="internet">Internet & Telecom</SelectItem>
-                  <SelectItem value="marketing">Marketing & Content</SelectItem>
-                  <SelectItem value="infrastructure">Infrastructure & Utilities</SelectItem>
-                  <SelectItem value="other_expenses">Other Expenses</SelectItem>
+                  {customCategories.map((c) => (
+                    <SelectItem key={c.id} value={c.name}>
+                      <div className="flex items-center gap-2">
+                        <span className="h-2 w-2 rounded-full" style={{ backgroundColor: c.color || '#16A34A' }} />
+                        <span>{c.name}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -509,6 +595,68 @@ export function QuickExpenseWidget({ onExpenseAdded, className = '' }: QuickExpe
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* CREATE CUSTOM CATEGORY DIALOG */}
+      <Dialog open={createCatOpen} onOpenChange={setCreateCatOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Create Custom Expense Category</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSaveCategory} className="space-y-3.5 pt-2">
+            <p className="text-xs text-content-secondary">
+              Create a category to group your expenses (e.g. "Food & Injera", "Staff Transport", "Software Tools"). All expenses in this category will show together in your charts.
+            </p>
+
+            <div className="space-y-1.5">
+              <Label required>Category Name</Label>
+              <Input
+                placeholder="e.g. Food & Team Injera"
+                value={newCatName}
+                onChange={(e) => setNewCatName(e.target.value)}
+                required
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label>Chart Color</Label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="color"
+                  value={newCatColor}
+                  onChange={(e) => setNewCatColor(e.target.value)}
+                  className="h-9 w-14 rounded border border-border cursor-pointer p-0.5 bg-transparent"
+                />
+                <span className="text-xs font-mono text-content-secondary">{newCatColor}</span>
+              </div>
+            </div>
+
+            <DialogFooter className="pt-2">
+              <Button type="button" variant="outline" onClick={() => setCreateCatOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit">Create Category</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* DELETE PRESET ALERT DIALOG */}
+      <AlertDialog open={!!deletePresetId} onOpenChange={() => setDeletePresetId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Expense Preset?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this preset? Existing transactions already logged with this preset will not be deleted.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDeletePreset} className="bg-state-danger text-white">
+              Delete Preset
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

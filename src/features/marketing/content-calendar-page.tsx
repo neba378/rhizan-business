@@ -14,6 +14,16 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   ArrowLeft,
@@ -26,6 +36,7 @@ import {
   Share2,
   MessageCircle,
   ExternalLink,
+  Trash2,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -46,6 +57,14 @@ export function ContentCalendarPage() {
   const content = useLiveQuery(() => db.contentItems.toArray()) || [];
   const [selectedItem, setSelectedItem] = useState<ContentItem | null>(null);
   const [analyticsModalOpen, setAnalyticsModalOpen] = useState(false);
+  const [deleteContentId, setDeleteContentId] = useState<string | null>(null);
+
+  const confirmDeleteContent = async () => {
+    if (!deleteContentId) return;
+    await db.contentItems.delete(deleteContentId);
+    toast.success('Content item deleted');
+    setDeleteContentId(null);
+  };
 
   // Performance Form State
   const [views, setViews] = useState('');
@@ -176,6 +195,16 @@ export function ContentCalendarPage() {
                       Log Stats
                     </Button>
                   )}
+
+                  <Button
+                    size="icon-sm"
+                    variant="ghost"
+                    onClick={() => setDeleteContentId(item.id!)}
+                    className="h-8 w-8 text-content-tertiary hover:text-state-danger hover:bg-state-danger-bg"
+                    title="Delete Content Item"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
                 </div>
               </div>
 
@@ -269,6 +298,23 @@ export function ContentCalendarPage() {
           </form>
         </DialogContent>
       </Dialog>
+      {/* DELETE CONFIRMATION ALERT DIALOG */}
+      <AlertDialog open={!!deleteContentId} onOpenChange={() => setDeleteContentId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Content Item?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this content item from your editorial pipeline?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDeleteContent} className="bg-state-danger text-white">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

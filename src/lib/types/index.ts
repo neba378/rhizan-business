@@ -60,15 +60,13 @@ export type IncomeCategory =
   | 'remote_contracts'
   | 'other_income';
 
-export type ExpenseCategory =
-  | 'internet'
-  | 'software_subscriptions'
-  | 'marketing'
-  | 'transportation'
-  | 'office_expenses'
-  | 'employee_payments'
-  | 'infrastructure'
-  | 'other_expenses';
+export type ExpenseCategory = string;
+
+export interface CustomCategory extends SyncMeta {
+  name: string;
+  color?: string;
+  description?: string;
+}
 
 export type PaymentMethod = 'cash' | 'bank_transfer' | 'mobile_money' | 'check' | 'online' | 'other';
 

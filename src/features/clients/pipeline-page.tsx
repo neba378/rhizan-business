@@ -18,6 +18,16 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
   ArrowLeft,
   ChevronRight,
   ChevronLeft,
@@ -31,6 +41,7 @@ import {
   UserCheck,
   FileText,
   Sparkles,
+  Trash2,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -101,6 +112,14 @@ export function PipelinePage() {
   const [followupModalOpen, setFollowupModalOpen] = useState(false);
 
   const [selectedProspect, setSelectedProspect] = useState<Prospect | null>(null);
+  const [deleteProspectId, setDeleteProspectId] = useState<string | null>(null);
+
+  const confirmDeleteProspect = async () => {
+    if (!deleteProspectId) return;
+    await db.prospects.delete(deleteProspectId);
+    toast.success('Prospect deleted from CRM');
+    setDeleteProspectId(null);
+  };
 
   // Form states
   const [lostReason, setLostReason] = useState('');
@@ -397,9 +416,15 @@ export function PipelinePage() {
                             <ChevronLeft className="h-4 w-4" />
                           </Button>
 
-                          <span className="text-[10px] font-semibold text-content-tertiary">
-                            {idx + 1} / {CRM_STAGES.length}
-                          </span>
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            onClick={() => setDeleteProspectId(p.id!)}
+                            className="h-7 w-7 text-content-tertiary hover:text-state-danger hover:bg-state-danger-bg"
+                            title="Delete Prospect"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
 
                           <Button
                             variant="ghost"
@@ -584,6 +609,23 @@ export function PipelinePage() {
           </form>
         </DialogContent>
       </Dialog>
+      {/* DELETE CONFIRMATION ALERT DIALOG */}
+      <AlertDialog open={!!deleteProspectId} onOpenChange={() => setDeleteProspectId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Client Opportunity?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this prospect card from the pipeline?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDeleteProspect} className="bg-state-danger text-white">
+              Delete Prospect
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

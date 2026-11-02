@@ -49,12 +49,36 @@ import type { Transaction, TransactionType, IncomeCategory, ExpenseCategory, Pay
 export function TransactionsPage() {
   const defaultCurrency = useAppStore((s) => s.defaultCurrency);
   const transactions = useLiveQuery(() => db.transactions.orderBy('date').reverse().toArray()) || [];
+  const customCategories = useLiveQuery(() => db.customCategories.toArray()) || [];
 
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'income' | 'expense'>('all');
   const [timePeriod, setTimePeriod] = useState<TimePeriod>('all');
   const [modalOpen, setModalOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+
+  // New Category Modal inside Transactions
+  const [catModalOpen, setCatModalOpen] = useState(false);
+  const [newCatName, setNewCatName] = useState('');
+  const [newCatColor, setNewCatColor] = useState('#16A34A');
+
+  const handleSaveCategory = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newCatName.trim()) return;
+    const catName = newCatName.trim();
+    await db.customCategories.add({
+      id: `cat-${Date.now()}`,
+      name: catName,
+      color: newCatColor,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      syncStatus: 'synced',
+    });
+    toast.success(`Category "${catName}" created`);
+    setCategory(catName);
+    setCatModalOpen(false);
+    setNewCatName('');
+  };
 
   // Add onto specific transaction modal
   const [targetAddOnTx, setTargetAddOnTx] = useState<Transaction | null>(null);
@@ -609,10 +633,21 @@ export function TransactionsPage() {
             </div>
 
             <div className="space-y-1.5">
-              <Label>Category</Label>
+              <div className="flex items-center justify-between">
+                <Label>Category</Label>
+                {type === 'expense' && (
+                  <button
+                    type="button"
+                    onClick={() => setCatModalOpen(true)}
+                    className="text-xs font-semibold text-brand-primary hover:underline flex items-center gap-1"
+                  >
+                    <Plus className="h-3 w-3" /> New Category
+                  </button>
+                )}
+              </div>
               <Select value={category} onValueChange={setCategory}>
                 <SelectTrigger>
-                  <SelectValue />
+                  <SelectValue placeholder="Select category..." />
                 </SelectTrigger>
                 <SelectContent>
                   {type === 'income' ? (
@@ -624,16 +659,14 @@ export function TransactionsPage() {
                       <SelectItem value="other_income">Other Income</SelectItem>
                     </>
                   ) : (
-                    <>
-                      <SelectItem value="office_expenses">Office & Meals (Injera, Buna)</SelectItem>
-                      <SelectItem value="transportation">Transportation & Taxi</SelectItem>
-                      <SelectItem value="internet">Internet & Telecom</SelectItem>
-                      <SelectItem value="software_subscriptions">Software & Tools</SelectItem>
-                      <SelectItem value="marketing">Marketing & Content</SelectItem>
-                      <SelectItem value="employee_payments">Team & Contractor Payments</SelectItem>
-                      <SelectItem value="infrastructure">Infrastructure & Office</SelectItem>
-                      <SelectItem value="other_expenses">Other Expenses</SelectItem>
-                    </>
+                    customCategories.map((c) => (
+                      <SelectItem key={c.id} value={c.name}>
+                        <div className="flex items-center gap-2">
+                          <span className="h-2 w-2 rounded-full" style={{ backgroundColor: c.color || '#16A34A' }} />
+                          <span>{c.name}</span>
+                        </div>
+                      </SelectItem>
+                    ))
                   )}
                 </SelectContent>
               </Select>
@@ -653,6 +686,47 @@ export function TransactionsPage() {
                 Cancel
               </Button>
               <Button type="submit">Save Entry</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* CREATE CATEGORY DIALOG */}
+      <Dialog open={catModalOpen} onOpenChange={setCatModalOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Create Custom Expense Category</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSaveCategory} className="space-y-4 pt-2">
+            <p className="text-xs text-content-secondary">
+              Group your expenses by custom categories (e.g. "Food & Injera", "Staff Transport", "Legal / Permits"). Expenses in this category will be grouped in your graphs.
+            </p>
+            <div className="space-y-1.5">
+              <Label required>Category Name</Label>
+              <Input
+                placeholder="e.g. Food & Team Injera"
+                value={newCatName}
+                onChange={(e) => setNewCatName(e.target.value)}
+                required
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Chart Color</Label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="color"
+                  value={newCatColor}
+                  onChange={(e) => setNewCatColor(e.target.value)}
+                  className="h-9 w-14 rounded border border-border cursor-pointer p-0.5 bg-transparent"
+                />
+                <span className="text-xs font-mono text-content-secondary">{newCatColor}</span>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setCatModalOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit">Create Category</Button>
             </DialogFooter>
           </form>
         </DialogContent>
