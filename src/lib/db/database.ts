@@ -15,6 +15,7 @@ import type {
   AppNotification,
   User,
   UserProfile,
+  ExpensePreset,
 } from '../types';
 
 class RhizanDatabase extends Dexie {
@@ -33,6 +34,7 @@ class RhizanDatabase extends Dexie {
   notifications!: EntityTable<AppNotification, 'id'>;
   users!: EntityTable<User, 'id'>;
   userProfiles!: EntityTable<UserProfile, 'id'>;
+  expensePresets!: EntityTable<ExpensePreset, 'id'>;
 
   constructor() {
     super('RhizanBusinessDB');
@@ -54,10 +56,82 @@ class RhizanDatabase extends Dexie {
       users: 'id, email',
       userProfiles: 'id, userId',
     });
+
+    this.version(2).stores({
+      expensePresets: 'id, name, category, defaultAmount, syncStatus',
+    });
   }
 }
 
 export const db = new RhizanDatabase();
+
+export async function ensureDefaultExpensePresets() {
+  const count = await db.expensePresets.count();
+  if (count === 0) {
+    await db.expensePresets.bulkAdd([
+      {
+        id: 'preset-injera',
+        name: 'Injera (Office Lunch)',
+        category: 'office_expenses',
+        defaultAmount: 150,
+        paymentMethod: 'mobile_money',
+        description: 'Daily team lunch injera',
+        icon: 'Utensils',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        syncStatus: 'synced',
+      },
+      {
+        id: 'preset-buna',
+        name: 'Buna (Coffee & Tea)',
+        category: 'office_expenses',
+        defaultAmount: 50,
+        paymentMethod: 'cash',
+        description: 'Office coffee & tea break',
+        icon: 'Coffee',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        syncStatus: 'synced',
+      },
+      {
+        id: 'preset-taxi',
+        name: 'Taxi / Ride Transport',
+        category: 'transportation',
+        defaultAmount: 250,
+        paymentMethod: 'mobile_money',
+        description: 'Client meeting or errand transport',
+        icon: 'Car',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        syncStatus: 'synced',
+      },
+      {
+        id: 'preset-internet',
+        name: 'Ethio Telecom / Internet',
+        category: 'internet',
+        defaultAmount: 350,
+        paymentMethod: 'mobile_money',
+        description: 'Data package top-up',
+        icon: 'Wifi',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        syncStatus: 'synced',
+      },
+      {
+        id: 'preset-water',
+        name: 'Office Water & Supplies',
+        category: 'office_expenses',
+        defaultAmount: 120,
+        paymentMethod: 'cash',
+        description: 'Bottled water and pantry supplies',
+        icon: 'ShoppingBag',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        syncStatus: 'synced',
+      },
+    ]);
+  }
+}
 
 export async function clearDatabase() {
   await Promise.all([
@@ -74,7 +148,9 @@ export async function clearDatabase() {
     db.meetings.clear(),
     db.auditLogs.clear(),
     db.notifications.clear(),
+    db.expensePresets.clear(),
   ]);
+  await ensureDefaultExpensePresets();
 }
 
 export async function createAuditLog(

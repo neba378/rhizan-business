@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '@/lib/db/database';
-import { formatCurrency, formatDate, getGreeting } from '@/lib/utils';
+import { formatCurrency, formatDate, getGreeting, generateId, matchesTimePeriod } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth-store';
 import { useAppStore } from '@/stores/app-store';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
@@ -28,6 +28,7 @@ import {
   Eye,
   Heart,
   Share2,
+  Layers,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -41,9 +42,9 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { generateId } from '@/lib/utils';
 import { normalizePipelineStage } from '@/features/clients/pipeline-page';
-import type { TransactionType, IncomeCategory, ExpenseCategory, Priority, PipelineStage, ContentPillar, Platform } from '@/lib/types';
+import { QuickExpenseWidget } from '@/features/finance/quick-expense-widget';
+import type { TransactionType, IncomeCategory, ExpenseCategory, Priority, PipelineStage, ContentPillar, Platform, TimePeriod } from '@/lib/types';
 
 export function DashboardPage() {
   const userName = useAuthStore((s) => s.userName) || 'Founder';
@@ -80,12 +81,15 @@ export function DashboardPage() {
 
   const totalInquiries = performance.reduce((sum, p) => sum + (p.businessInquiries || 0), 0);
 
-  // Financial Calculations
-  const totalIncome = transactions
+  // Financial Period Filter (Daily / Weekly / Monthly / All)
+  const [financePeriod, setFinancePeriod] = useState<TimePeriod>('all');
+  const filteredFinanceTx = transactions.filter((t) => matchesTimePeriod(t.date, financePeriod));
+
+  const totalIncome = filteredFinanceTx
     .filter((t) => t.type === 'income')
     .reduce((sum, t) => sum + (t.amount || 0), 0);
 
-  const totalExpenses = transactions
+  const totalExpenses = filteredFinanceTx
     .filter((t) => t.type === 'expense')
     .reduce((sum, t) => sum + (t.amount || 0), 0);
 
@@ -298,7 +302,7 @@ export function DashboardPage() {
 
       {/* 1. FINANCIAL HEALTH OVERVIEW */}
       <section className="space-y-3">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <div className="flex h-6 w-6 items-center justify-center rounded-md bg-brand-primary/10 text-brand-primary">
               <Wallet className="h-3.5 w-3.5" />
@@ -307,18 +311,53 @@ export function DashboardPage() {
               Financial Position
             </h2>
           </div>
-          <Link
-            to="/finance"
-            className="text-xs font-semibold text-brand-primary hover:underline flex items-center gap-1"
-          >
-            <span>View Full Ledger</span>
-            <ArrowRight className="h-3 w-3" />
-          </Link>
+
+          <div className="flex items-center justify-between sm:justify-end gap-2">
+            {/* Daily, Weekly, Monthly Filter Pills */}
+            <div className="flex items-center gap-1 bg-surface-bg p-0.5 rounded-lg border border-border">
+              {(
+                [
+                  { id: 'today', label: 'Today' },
+                  { id: 'week', label: 'Week' },
+                  { id: 'month', label: 'Month' },
+                  { id: 'all', label: 'All' },
+                ] as const
+              ).map((p) => (
+                <button
+                  key={p.id}
+                  onClick={() => setFinancePeriod(p.id)}
+                  className={`px-2.5 py-0.5 rounded text-[11px] font-semibold transition-all ${
+                    financePeriod === p.id
+                      ? 'bg-brand-primary text-white shadow-2xs'
+                      : 'text-content-secondary hover:text-content-primary'
+                  }`}
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
+
+            <Link
+              to="/finance"
+              className="text-xs font-semibold text-brand-primary hover:underline flex items-center gap-1 shrink-0"
+            >
+              <span>Full Ledger</span>
+              <ArrowRight className="h-3 w-3" />
+            </Link>
+          </div>
         </div>
 
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <StatCard
-            title="Total Revenue"
+            title={
+              financePeriod === 'today'
+                ? "Today's Revenue"
+                : financePeriod === 'week'
+                ? "This Week's Revenue"
+                : financePeriod === 'month'
+                ? "This Month's Revenue"
+                : "Total Revenue"
+            }
             value={formatCurrency(totalIncome, defaultCurrency)}
             icon={TrendingUp}
             iconBg="bg-state-success-bg"
@@ -326,7 +365,15 @@ export function DashboardPage() {
           />
 
           <StatCard
-            title="Total Expenses"
+            title={
+              financePeriod === 'today'
+                ? "Today's Expenses"
+                : financePeriod === 'week'
+                ? "This Week's Expenses"
+                : financePeriod === 'month'
+                ? "This Month's Expenses"
+                : "Total Expenses"
+            }
             value={formatCurrency(totalExpenses, defaultCurrency)}
             icon={TrendingDown}
             iconBg="bg-state-danger-bg"
@@ -334,11 +381,19 @@ export function DashboardPage() {
           />
 
           <StatCard
-            title="Available Cash Flow"
+            title={
+              financePeriod === 'today'
+                ? "Today's Net"
+                : financePeriod === 'week'
+                ? "This Week's Net"
+                : financePeriod === 'month'
+                ? "This Month's Net"
+                : "Available Cash"
+            }
             value={formatCurrency(netCashFlow, defaultCurrency)}
             icon={DollarSign}
             iconBg="bg-brand-primary/10"
-            iconColor="text-brand-primary"
+            iconColor={netCashFlow >= 0 ? "text-brand-primary" : "text-state-danger"}
           />
 
           <StatCard
@@ -349,6 +404,13 @@ export function DashboardPage() {
             iconColor="text-state-warning"
           />
         </div>
+
+        {/* Quick Expense Presets & Add-on Tab */}
+        <Card className="border-border shadow-card bg-surface-card mt-2">
+          <CardContent className="p-3">
+            <QuickExpenseWidget />
+          </CardContent>
+        </Card>
       </section>
 
       {/* 2. DUAL COLUMN: CLIENT PIPELINE & MARKETING SNAPSHOT */}
@@ -645,9 +707,15 @@ export function DashboardPage() {
       <Dialog open={quickExpenseOpen} onOpenChange={setQuickExpenseOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Record Expense</DialogTitle>
+            <DialogTitle>Record Expense / Add to Daily Tab</DialogTitle>
           </DialogHeader>
-          <form onSubmit={handleAddExpense} className="space-y-4 pt-2">
+          <div className="pt-1 pb-2 border-b border-border/70">
+            <QuickExpenseWidget onExpenseAdded={() => setQuickExpenseOpen(false)} />
+          </div>
+          <form onSubmit={handleAddExpense} className="space-y-4 pt-1">
+            <p className="text-[11px] font-semibold text-content-tertiary uppercase tracking-wider">
+              Or Record Custom Expense:
+            </p>
             <div className="space-y-1.5">
               <Label required>Expense Name</Label>
               <Input

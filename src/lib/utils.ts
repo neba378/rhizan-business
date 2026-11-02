@@ -42,6 +42,45 @@ export function generateId(): string {
   return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 }
 
+export function isToday(date: Date | string): boolean {
+  const d = typeof date === 'string' ? new Date(date) : date;
+  const now = new Date();
+  return (
+    d.getFullYear() === now.getFullYear() &&
+    d.getMonth() === now.getMonth() &&
+    d.getDate() === now.getDate()
+  );
+}
+
+export function isThisWeek(date: Date | string): boolean {
+  const d = typeof date === 'string' ? new Date(date) : date;
+  const now = new Date();
+  const startOfWeek = new Date(now);
+  startOfWeek.setHours(0, 0, 0, 0);
+  // Roll back to Monday (or last 7 days)
+  const day = startOfWeek.getDay();
+  const diffToMonday = (day + 6) % 7;
+  startOfWeek.setDate(startOfWeek.getDate() - diffToMonday);
+  return d >= startOfWeek;
+}
+
+export function isThisMonth(date: Date | string): boolean {
+  const d = typeof date === 'string' ? new Date(date) : date;
+  const now = new Date();
+  return (
+    d.getFullYear() === now.getFullYear() &&
+    d.getMonth() === now.getMonth()
+  );
+}
+
+export function matchesTimePeriod(date: Date | string, period: 'today' | 'week' | 'month' | 'all'): boolean {
+  if (period === 'all') return true;
+  if (period === 'today') return isToday(date);
+  if (period === 'week') return isThisWeek(date);
+  if (period === 'month') return isThisMonth(date);
+  return true;
+}
+
 export function getGreeting(): string {
   const hour = new Date().getHours();
   if (hour < 12) return 'Good morning';

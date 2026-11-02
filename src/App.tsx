@@ -16,7 +16,7 @@ import { MeetingsPage } from '@/features/calendar/meetings-page';
 import { ReportsPage } from '@/features/reports/reports-page';
 import { SettingsPage } from '@/features/settings/settings-page';
 import { useEffect } from 'react';
-import { clearDatabase } from '@/lib/db/database';
+import { clearDatabase, ensureDefaultExpensePresets } from '@/lib/db/database';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
@@ -30,7 +30,10 @@ export default function App() {
     if (!localStorage.getItem(HAS_CLEARED)) {
       clearDatabase().then(() => {
         localStorage.setItem(HAS_CLEARED, 'true');
+        ensureDefaultExpensePresets();
       });
+    } else {
+      ensureDefaultExpensePresets();
     }
   }, []);
 

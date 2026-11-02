@@ -72,6 +72,18 @@ export type ExpenseCategory =
 
 export type PaymentMethod = 'cash' | 'bank_transfer' | 'mobile_money' | 'check' | 'online' | 'other';
 
+export type TimePeriod = 'today' | 'week' | 'month' | 'all';
+
+export interface ExpensePreset extends SyncMeta {
+  name: string; // e.g. "Injera (Office Lunch)"
+  category: ExpenseCategory;
+  defaultAmount: number;
+  paymentMethod: PaymentMethod;
+  vendorName?: string;
+  description?: string;
+  icon?: string;
+}
+
 export interface Transaction extends SyncMeta {
   title: string;
   amount: number; // stored in cents or base units (we'll format consistently)
