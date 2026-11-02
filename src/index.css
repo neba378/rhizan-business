@@ -1,0 +1,70 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  }
+
+  body {
+    overscroll-behavior-y: none;
+  }
+
+  /* Smooth scrolling for main content */
+  .scroll-area {
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    scrollbar-color: #E5EAF1 transparent;
+  }
+
+  .scroll-area::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  .scroll-area::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .scroll-area::-webkit-scrollbar-thumb {
+    background-color: #E5EAF1;
+    border-radius: 3px;
+  }
+
+  /* Hide scrollbar on mobile */
+  @media (max-width: 640px) {
+    .scroll-area::-webkit-scrollbar {
+      display: none;
+    }
+    .scroll-area {
+      scrollbar-width: none;
+    }
+  }
+
+  /* Number input - hide spinners */
+  input[type='number']::-webkit-inner-spin-button,
+  input[type='number']::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  input[type='number'] {
+    -moz-appearance: textfield;
+  }
+}
+
+@layer utilities {
+  .safe-pb {
+    padding-bottom: max(env(safe-area-inset-bottom), 1rem);
+  }
+
+  .safe-pt {
+    padding-top: max(env(safe-area-inset-top), 0px);
+  }
+}
